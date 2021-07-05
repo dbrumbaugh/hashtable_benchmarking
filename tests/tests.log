@@ -1,8 +1,0 @@
-Running suite(s): IV_FixedType Hashtable
-100%: Checks: 6, Failures: 0, Errors: 0
-tests/hash_tests.cpp:10:P:basic:construct_hashtable:0: Passed
-tests/hash_tests.cpp:21:P:basic:destroy_hashtable:0: Passed
-tests/hash_tests.cpp:59:P:basic:simple_insert:0: Passed
-tests/hash_tests.cpp:84:P:basic:simple_delete:0: Passed
-tests/hash_tests.cpp:136:P:basic:hash_collision:0: Passed
-tests/hash_tests.cpp:109:P:basic:bulk_insert:0: Passed
