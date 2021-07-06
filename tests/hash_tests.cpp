@@ -1,5 +1,6 @@
 #include <check.h>
-#include <stdio.h>
+#include <cstdio>
+#include <cstdlib>
 #include "hashtable.hpp"
 
 uint32_t testhash(uint32_t hval)
