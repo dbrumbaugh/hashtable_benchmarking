@@ -99,10 +99,10 @@ END_TEST
 
 START_TEST(bulk_insert)
 {
-    int n = 2048;
-    auto *test = new HashTable<uint32_t, int*>(n, &testhash);
+    int n = 1 << 15;
+    auto *test = new HashTable<uint32_t, int*>(1024, &testhash);
 
-    int *test_data = (int *) calloc(2*n, sizeof(int));
+    int *test_data = new int[2*n];
     for (int i=0; i<2*n; i++) {
         test_data[i] = rand();
         test->insert(i, &(test_data[i]));
@@ -111,16 +111,12 @@ START_TEST(bulk_insert)
 
     ck_assert_int_eq(test->length(), 2*n);
 
-
-
     for (int i=0; i<2*n; i++) {
         auto res = test->access(i);
         ck_assert_ptr_ne(res, nullptr);
         ck_assert_int_eq(*(res->value), test_data[i]);
     }
 
-
-    fprintf(stderr, "Average chain length is: %lf", test->average_chain());
 
     delete test;
 }
