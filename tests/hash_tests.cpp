@@ -2,6 +2,15 @@
 #include <stdio.h>
 #include "hashtable.hpp"
 
+uint32_t testhash(uint32_t hval)
+{
+    hval = ((hval >> 16) ^ hval) * 0x45d9f3b;
+    hval = ((hval >> 16) ^ hval) * 0x45d9f3b;
+    hval = (hval >> 16) ^ hval;
+
+    return hval;
+}
+
 START_TEST(construct_hashtable)
 {
     auto test = new HashTable<int, void*>();
@@ -90,7 +99,7 @@ END_TEST
 START_TEST(bulk_insert)
 {
     int n = 2048;
-    auto *test = new HashTable<int, int*>(n);
+    auto *test = new HashTable<uint32_t, int*>(n, &testhash);
 
     int *test_data = (int *) calloc(2*n, sizeof(int));
     for (int i=0; i<2*n; i++) {
@@ -109,7 +118,40 @@ START_TEST(bulk_insert)
         ck_assert_int_eq(*(res->value), test_data[i]);
     }
 
+
+    fprintf(stderr, "Average chain length is: %lf", test->average_chain());
+
     delete test;
+}
+END_TEST
+
+
+START_TEST(resize)
+{
+    int n = 20;
+    auto *test = new HashTable<int, int>(n);
+
+    for (int i=0; i<15; i++)
+        test->insert(i, i);
+
+    ck_assert_int_eq(15, test->length());
+    ck_assert_double_eq(15.0 / 20.0, test->load_factor());
+
+    test->insert(15, 15);
+
+    ck_assert_int_eq(16, test->length());
+    ck_assert_double_eq(16.0 / 20.0, test->load_factor());
+
+    test->insert(16, 16);
+
+    ck_assert_int_eq(17, test->length());
+    ck_assert_double_eq(17.0 / 40.0, test->load_factor());
+
+    for (int i=0; i<17; i++) {
+        auto x = test->access(i);
+        ck_assert_ptr_nonnull(x);
+        ck_assert_int_eq(x->value, i);
+    }
 }
 END_TEST
 
@@ -152,6 +194,7 @@ Suite *test_suite()
     tcase_add_test(basic, destroy_hashtable);
     tcase_add_test(basic, simple_insert);
     tcase_add_test(basic, simple_delete);
+    tcase_add_test(basic, resize);
 
     tcase_add_test(basic, hash_collision);
 
