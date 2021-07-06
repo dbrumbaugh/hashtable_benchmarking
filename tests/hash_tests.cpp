@@ -183,7 +183,7 @@ END_TEST
 
 Suite *test_suite()
 {
-    Suite *suite = suite_create("IV_FixedType Hashtable");
+    Suite *suite = suite_create("Templated Hashtable (closed addressing)");
 
     // Test the basic functionality
     TCase *basic = tcase_create("basic");
