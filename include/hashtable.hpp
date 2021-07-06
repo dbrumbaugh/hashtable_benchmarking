@@ -52,7 +52,7 @@ class HashTable {
                     prev->next = temp->next;
                 else
                     buckets[idx].first = temp->next;
-                free(temp);
+                delete temp;
 
                 buckets[idx].count--;
                 count--;
