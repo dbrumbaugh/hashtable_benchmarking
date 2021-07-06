@@ -33,6 +33,7 @@ class HashTable {
         u_int32_t (*h0)(TKey);
         double max_lf;
 
+
         element_t<TKey, TValue> *operate(TKey key, Operation op)
         {
             auto idx = hash(key);
@@ -60,6 +61,7 @@ class HashTable {
 
             return empty;
         }
+
 
         element_t<TKey, TValue> *operate(TKey key, Operation op, TValue value)
         {
@@ -106,6 +108,7 @@ class HashTable {
             return (hashed * size) >> 32;
         }
 
+
         void initialize(int init_size, u_int32_t (*hfunc)(TKey), double max_loadfactor)
         {
             size = init_size;
@@ -119,6 +122,7 @@ class HashTable {
 
             count = 0;
         }
+
 
         void resize()
         {
@@ -153,15 +157,18 @@ class HashTable {
 
         }
 
+
         HashTable<TKey, TValue>(int init_size, u_int32_t (*hfunc)(TKey))
         {
             initialize(init_size, hfunc, .75);
         }
 
+
         HashTable<TKey, TValue>(int init_size)
         {
             initialize(init_size, nullptr, .75);
         }
+
 
         HashTable<TKey, TValue>()
         {
@@ -188,9 +195,12 @@ class HashTable {
             operate(key, O_DELETE);
         }
 
+
         int length() { return count; }
 
+
         double load_factor() {return (double) count / (double) size; }
+
 
         double average_chain()
         {

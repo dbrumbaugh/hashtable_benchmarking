@@ -12,6 +12,7 @@ uint32_t testhash(uint32_t hval)
     return hval;
 }
 
+
 START_TEST(construct_hashtable)
 {
     auto test = new HashTable<int, void*>();
@@ -44,7 +45,6 @@ START_TEST(simple_insert)
     int *test_val = (int *) calloc(1, sizeof(int));
     *test_val = 100;
 
-    
     // Insert returns pointer to inserted value
     auto res = test->insert(5, test_val);
     ck_assert_ptr_eq(res->value, test_val);
@@ -60,7 +60,7 @@ START_TEST(simple_insert)
     ck_assert_int_eq(test->length(), 1);
 
     // Accessing inserted key results in correct value
-    auto res3 = test->access(5); 
+    auto res3 = test->access(5);
     ck_assert_ptr_eq(res3->value, test_val);
 
 
@@ -173,12 +173,10 @@ START_TEST(hash_collision)
 
     ck_assert_int_eq(res1->value, val1);
     ck_assert_int_eq(res2->value, val2);
-    
 
     delete test;
 }
 END_TEST
-    
 
 
 Suite *test_suite()
@@ -206,6 +204,7 @@ Suite *test_suite()
     return suite;
 }
 
+
 int run_test_suite()
 {
     int failed = 0;
@@ -220,7 +219,7 @@ int run_test_suite()
 }
 
 
-int main() 
+int main()
 {
     int failed = run_test_suite();
 
