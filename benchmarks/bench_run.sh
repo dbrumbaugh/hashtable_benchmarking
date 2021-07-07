@@ -1,9 +1,12 @@
 #!/bin/bash
 echo "Running benchmarks"
 
-for i in benchmarks/*_bench
-do
-    $i 2>&1 >> benchmarks/benchmarks.log
+
+echo "\tRunning baseline benchmark"
+echo "n,throughput,latency" > baseline.log
+for (( i = 1; i<1000000; i = i + 10000 )); do
+    ./baseline_bench $i >> baseline.log
 done
+echo "\tFinished running baseline benchmark"
 
 echo ""

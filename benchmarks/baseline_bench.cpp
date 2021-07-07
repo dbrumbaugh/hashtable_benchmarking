@@ -5,6 +5,15 @@
 using namespace std;
 
 
+uint32_t testhash(uint32_t hval)
+{
+    hval = ((hval >> 16) ^ hval) * 0x45d9f3b;
+    hval = ((hval >> 16) ^ hval) * 0x45d9f3b;
+    hval = (hval >> 16) ^ hval;
+
+    return hval;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -14,7 +23,7 @@ int main(int argc, char **argv)
     }
 
     int n = stoi(argv[1]);
-    auto test = new HashTable<int, int>(10000);
+    auto test = new HashTable<uint32_t, int>(10000, testhash);
     double total_time = 0.0;
 
     auto tp_start = std::chrono::high_resolution_clock::now();
@@ -31,7 +40,8 @@ int main(int argc, char **argv)
     tp_total *= 1e-9;
     total_time *= 1e-9;
 
-    cout << (n / tp_total) << "\n";
+    cout << n << ",";
+    cout << (n / tp_total) << ",";
     cout << (total_time / n) << "\n";
 }
 
