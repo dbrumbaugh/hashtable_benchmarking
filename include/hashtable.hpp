@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <cstdio>
 
 enum Operation {
     O_INSERT,
@@ -7,18 +8,18 @@ enum Operation {
 };
 
 
-template <typename TKey, typename TValue>
-struct alignas(64) element_t {
-    TKey key;
-    TValue value;
-    struct element_t<TKey, TValue> *next;
+enum EStatus {
+    ES_EMPTY,
+    ES_POPULATED,
+    ES_DELETED
 };
 
 
 template <typename TKey, typename TValue>
-struct bucket_t {
-    int count;
-    element_t<TKey, TValue> *first;
+struct alignas(64) element_t {
+    TKey key;
+    TValue value;
+    EStatus status;
 };
 
 
@@ -27,8 +28,8 @@ class HashTable {
     private:
         int count;
         int size;
-        bucket_t<TKey, TValue> *buckets;
-        element_t<TKey, TValue> *empty;
+        int stride;
+        element_t<TKey, TValue> *elements;
 
         u_int32_t (*h0)(TKey);
         double max_lf;
@@ -37,58 +38,53 @@ class HashTable {
         element_t<TKey, TValue> *operate(TKey key, Operation op)
         {
             auto idx = hash(key);
-            element_t<TKey, TValue> *temp=nullptr, *prev=nullptr;
 
-            for (temp=buckets[idx].first; temp; temp=temp->next) {
-                if (temp->key == key)
-                    break;
-                prev = temp;
+            element_t<TKey, TValue> *temp = &elements[idx];
+
+            // TODO: This will classify a deleted element as "found" still,
+            // but I want to get other stuff working first, before I deal with
+            // that edge case
+            while (temp->key != key && temp->status != ES_EMPTY) {
+                idx = (idx + stride) % size;
+                temp = &(elements[idx]);
             }
+
+            if (temp->status == ES_EMPTY || temp->status == ES_DELETED)
+                temp = nullptr;
 
             if (op == O_ACCESS)
                 return temp;
 
+            // We need the tombstones to still count for load_factor calculation,
+            // so don't decrement the count variable here.
             if (op == O_DELETE && temp) {
-                if (prev)
-                    prev->next = temp->next;
-                else
-                    buckets[idx].first = temp->next;
-                delete temp;
-
-                buckets[idx].count--;
-                count--;
+                temp->status = ES_DELETED;
             }
 
-            return empty;
+            return nullptr;
         }
 
 
         element_t<TKey, TValue> *operate(TKey key, Operation op, TValue value)
         {
             auto idx = hash(key);
-            element_t<TKey, TValue> *temp=nullptr, *prev=nullptr;
+            element_t<TKey, TValue> *temp = &(elements[idx]);
 
-            for (temp=buckets[idx].first; temp; temp=temp->next) {
-                if (temp->key == key)
-                    break;
-                prev = temp;
+
+            while (temp->key != key && temp->status != ES_EMPTY) {
+                idx = (idx + stride) % size;
+                temp = &(elements[idx]);
             }
 
             if (op == O_INSERT) {
-                if (!temp) {
-                    auto new_elem = new element_t<TKey, TValue> {key, value, nullptr};
-                    if (prev) {
-                        prev->next = new_elem;
-                    } else {
-                        buckets[idx].first = new_elem;
-                    }
-
+                if (temp->status == ES_EMPTY) {
+                    temp->key = key;
+                    temp->value = value;
+                    temp->status = ES_POPULATED;
                     count++;
-                    buckets[idx].count++;
-                    return new_elem;
-                } else {
-                    return temp;
-                }
+                } 
+
+                return temp;
             }
 
             return nullptr;
@@ -114,10 +110,11 @@ class HashTable {
             size = init_size;
             h0 = hfunc;
             max_lf = max_loadfactor;
+            stride = 1;
 
-            buckets = new bucket_t<TKey, TValue>[size];
+            elements = new element_t<TKey, TValue>[size];
             for (int i=0; i<size; i++) {
-                buckets[i] = bucket_t<TKey, TValue> {0, nullptr};
+                elements[i] = element_t<TKey, TValue> {0, 0, ES_EMPTY};
             }
 
             count = 0;
@@ -131,22 +128,19 @@ class HashTable {
 
             count = 0;
 
-            auto old_array = buckets;
-
-            buckets = new bucket_t<TKey, TValue>[size];
-
+            auto old_array = elements;
+            elements = new element_t<TKey, TValue>[size];
             for (int i=0; i<size; i++) {
-                buckets[i] = bucket_t<TKey, TValue> {0, nullptr};
+                elements[i] = element_t<TKey, TValue> {0, 0, ES_EMPTY};
             }
 
             for (int i=0; i<old_size; i++) {
-                element_t<TKey, TValue> *prev = nullptr;
-                for (auto temp = old_array[i].first; temp; temp = temp->next) {
-                    delete prev;
-                    operate(temp->key, O_INSERT, temp->value);
-                    prev = temp;
+                if (old_array[i].status == ES_POPULATED) {
+                    operate(old_array[i].key, O_INSERT, old_array[i].value);
                 }
             }
+
+            delete old_array;
         }
 
 
@@ -154,7 +148,6 @@ class HashTable {
         HashTable<TKey, TValue>(u_int32_t (*hfunc)(TKey))
         {
             initialize(1024, hfunc, .75);
-
         }
 
 
@@ -206,7 +199,7 @@ class HashTable {
         {
             double total = 0;
             for (int i=0; i<size; i++) {
-                total += buckets[i].count;
+                total += elements[i].count;
             }
 
             return total / (double) size;
@@ -215,14 +208,6 @@ class HashTable {
 
         ~HashTable()
         {
-            for (int i=0; i<size; i++) {
-                element_t<TKey, TValue> *prev = nullptr;
-                for (auto temp=buckets[i].first; temp; temp=temp->next) {
-                    delete prev;
-                    prev = temp;
-                }
-            }
-
-            delete buckets;
+            delete elements;
         }
 };
