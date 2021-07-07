@@ -40,7 +40,8 @@ int main(int argc, char **argv)
     tp_total *= 1e-9;
     total_time *= 1e-9;
 
-    cout << (n / tp_total) << "\n";
+    cout << n << ",";
+    cout << (n / tp_total) << ",";
     cout << (total_time / n) << "\n";
 }
 
