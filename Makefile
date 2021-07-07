@@ -11,7 +11,10 @@ OBJECTS = $(patsubst src/%.cpp,build/%.o,$(SOURCES))
 TEST_SRC = $(wildcard tests/*_tests.cpp)
 TESTS = $(patsubst %.cpp,%,$(TEST_SRC))
 
-all: $(TARGET) tests
+BENCH_SRC = $(wildcard benchmarks/*_bench.cpp)
+BENCHMARKS = $(patsubst %.cpp,%,$(BENCH_SRC))
+
+all: tests benchmarks
 
 .PHONY: build
 build:
@@ -19,9 +22,12 @@ build:
 	mkdir -p bin
 
 .PHONY: tests
-tests: LDLIBS += $(TARGET)
 tests: $(TESTS)
 	sh ./tests/unit-tests.sh
+
+.PHONY: benchmarks
+benchmarks: $(BENCHMARKS)
+	sh ./benchmarks/bench_run.sh
 
 clean:
 	rm -rf $(TARGET)
