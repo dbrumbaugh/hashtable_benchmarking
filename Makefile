@@ -27,10 +27,10 @@ tests: $(TESTS)
 
 .PHONY: benchmarks
 benchmarks: $(BENCHMARKS)
-	sh ./benchmarks/bench_run.sh
+	ksh ./benchmarks/bench_run.sh
 
 clean:
 	rm -rf $(TARGET)
-	rm -rf build $(OBJECTS) $(TESTS)
+	rm -rf build $(OBJECTS) $(TESTS) $(BENCHMARKS)
 	rm -f tests/tests.log
-	rm -rf tests/testdb
+	rm -f benchmarks/*.log
