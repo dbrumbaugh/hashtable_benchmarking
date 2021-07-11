@@ -105,12 +105,12 @@ class HashTable {
         }
 
 
-        void initialize(int init_size, u_int32_t (*hfunc)(TKey), double max_loadfactor)
+        void initialize(int init_size, u_int32_t (*hfunc)(TKey), double max_loadfactor, int strd=1)
         {
             size = init_size;
             h0 = hfunc;
             max_lf = max_loadfactor;
-            stride = 1;
+            stride = strd;
 
             elements = new element_t<TKey, TValue>[size];
             for (int i=0; i<size; i++) {
@@ -154,6 +154,18 @@ class HashTable {
         HashTable<TKey, TValue>(int init_size, u_int32_t (*hfunc)(TKey))
         {
             initialize(init_size, hfunc, .75);
+        }
+
+
+        HashTable<TKey, TValue>(int init_size, u_int32_t (*hfunc)(TKey), int strd)
+        {
+            initialize(init_size, hfunc, .75, strd);
+        }
+
+
+        HashTable<TKey, TValue>(int init_size, u_int32_t (*hfunc)(TKey), int strd, double maxlod)
+        {
+            initialize(init_size, hfunc, maxlod, strd);
         }
 
 
