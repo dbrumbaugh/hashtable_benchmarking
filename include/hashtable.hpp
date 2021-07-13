@@ -26,9 +26,9 @@ struct alignas(64) element_t {
 template <typename TKey, typename TValue>
 class HashTable {
     private:
-        int count;
-        int size;
-        int stride;
+        size_t count;
+        size_t size;
+        size_t stride;
         element_t<TKey, TValue> *elements;
 
         u_int32_t (*h0)(TKey);
@@ -82,7 +82,7 @@ class HashTable {
                     temp->value = value;
                     temp->status = ES_POPULATED;
                     count++;
-                } 
+                }
 
                 return temp;
             }
@@ -105,7 +105,7 @@ class HashTable {
         }
 
 
-        void initialize(int init_size, u_int32_t (*hfunc)(TKey), double max_loadfactor, int strd=1)
+        void initialize(size_t init_size, u_int32_t (*hfunc)(TKey), double max_loadfactor, size_t strd=1)
         {
             size = init_size;
             h0 = hfunc;
@@ -113,7 +113,7 @@ class HashTable {
             stride = strd;
 
             elements = new element_t<TKey, TValue>[size];
-            for (int i=0; i<size; i++) {
+            for (size_t i=0; i<size; i++) {
                 elements[i] = element_t<TKey, TValue> {0, 0, ES_EMPTY};
             }
 
@@ -123,18 +123,18 @@ class HashTable {
 
         void resize()
         {
-            int old_size = size;
+            size_t old_size = size;
             size = size * 2;
 
             count = 0;
 
             auto old_array = elements;
             elements = new element_t<TKey, TValue>[size];
-            for (int i=0; i<size; i++) {
+            for (size_t i=0; i<size; i++) {
                 elements[i] = element_t<TKey, TValue> {0, 0, ES_EMPTY};
             }
 
-            for (int i=0; i<old_size; i++) {
+            for (size_t i=0; i<old_size; i++) {
                 if (old_array[i].status == ES_POPULATED) {
                     operate(old_array[i].key, O_INSERT, old_array[i].value);
                 }
@@ -151,25 +151,25 @@ class HashTable {
         }
 
 
-        HashTable<TKey, TValue>(int init_size, u_int32_t (*hfunc)(TKey))
+        HashTable<TKey, TValue>(size_t init_size, u_int32_t (*hfunc)(TKey))
         {
             initialize(init_size, hfunc, .75);
         }
 
 
-        HashTable<TKey, TValue>(int init_size, u_int32_t (*hfunc)(TKey), int strd)
+        HashTable<TKey, TValue>(size_t init_size, u_int32_t (*hfunc)(TKey), size_t strd)
         {
             initialize(init_size, hfunc, .75, strd);
         }
 
 
-        HashTable<TKey, TValue>(int init_size, u_int32_t (*hfunc)(TKey), int strd, double maxlod)
+        HashTable<TKey, TValue>(size_t init_size, u_int32_t (*hfunc)(TKey), size_t strd, double maxlod)
         {
             initialize(init_size, hfunc, maxlod, strd);
         }
 
 
-        HashTable<TKey, TValue>(int init_size)
+        HashTable<TKey, TValue>(size_t init_size)
         {
             initialize(init_size, nullptr, .75);
         }
@@ -201,7 +201,7 @@ class HashTable {
         }
 
 
-        int length() { return count; }
+        size_t length() { return count; }
 
 
         double load_factor() {return (double) count / (double) size; }
@@ -210,7 +210,7 @@ class HashTable {
         double average_chain()
         {
             double total = 0;
-            for (int i=0; i<size; i++) {
+            for (size_t i=0; i<size; i++) {
                 total += elements[i].count;
             }
 
