@@ -17,7 +17,7 @@ struct alignas(64) element_t {
 
 template <typename TKey, typename TValue>
 struct bucket_t {
-    int count;
+    size_t count;
     element_t<TKey, TValue> *first;
 };
 
@@ -25,8 +25,8 @@ struct bucket_t {
 template <typename TKey, typename TValue>
 class HashTable {
     private:
-        int count;
-        int size;
+        size_t count;
+        size_t size;
         bucket_t<TKey, TValue> *buckets;
         element_t<TKey, TValue> *empty;
 
@@ -109,14 +109,14 @@ class HashTable {
         }
 
 
-        void initialize(int init_size, u_int32_t (*hfunc)(TKey), double max_loadfactor)
+        void initialize(size_t init_size, u_int32_t (*hfunc)(TKey), double max_loadfactor)
         {
             size = init_size;
             h0 = hfunc;
             max_lf = max_loadfactor;
 
             buckets = new bucket_t<TKey, TValue>[size];
-            for (int i=0; i<size; i++) {
+            for (size_t i=0; i<size; i++) {
                 buckets[i] = bucket_t<TKey, TValue> {0, nullptr};
             }
 
@@ -126,7 +126,7 @@ class HashTable {
 
         void resize()
         {
-            int old_size = size;
+            size_t old_size = size;
             size = size * 2;
 
             count = 0;
@@ -135,11 +135,11 @@ class HashTable {
 
             buckets = new bucket_t<TKey, TValue>[size];
 
-            for (int i=0; i<size; i++) {
+            for (size_t i=0; i<size; i++) {
                 buckets[i] = bucket_t<TKey, TValue> {0, nullptr};
             }
 
-            for (int i=0; i<old_size; i++) {
+            for (size_t i=0; i<old_size; i++) {
                 element_t<TKey, TValue> *prev = nullptr;
                 for (auto temp = old_array[i].first; temp; temp = temp->next) {
                     delete prev;
@@ -158,13 +158,13 @@ class HashTable {
         }
 
 
-        HashTable<TKey, TValue>(int init_size, u_int32_t (*hfunc)(TKey))
+        HashTable<TKey, TValue>(size_t init_size, u_int32_t (*hfunc)(TKey))
         {
             initialize(init_size, hfunc, .75);
         }
 
 
-        HashTable<TKey, TValue>(int init_size)
+        HashTable<TKey, TValue>(size_t init_size)
         {
             initialize(init_size, nullptr, .75);
         }
@@ -196,7 +196,7 @@ class HashTable {
         }
 
 
-        int length() { return count; }
+        size_t length() { return count; }
 
 
         double load_factor() {return (double) count / (double) size; }
@@ -205,7 +205,7 @@ class HashTable {
         double average_chain()
         {
             double total = 0;
-            for (int i=0; i<size; i++) {
+            for (size_t i=0; i<size; i++) {
                 total += buckets[i].count;
             }
 
@@ -215,7 +215,7 @@ class HashTable {
 
         ~HashTable()
         {
-            for (int i=0; i<size; i++) {
+            for (size_t i=0; i<size; i++) {
                 element_t<TKey, TValue> *prev = nullptr;
                 for (auto temp=buckets[i].first; temp; temp=temp->next) {
                     delete prev;
