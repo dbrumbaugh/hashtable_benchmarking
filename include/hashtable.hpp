@@ -1,31 +1,17 @@
+#pragma once
 #include <cassert>
 #include <cstdlib>
 #include <cstdio>
+#include "arraystack.hpp"
+#include "element.hpp"
+#include "hashmode.hpp"
+
 
 enum Operation {
     O_INSERT,
     O_ACCESS,
     O_DELETE
 };
-
-
-enum EStatus {
-    ES_EMPTY,
-    ES_POPULATED,
-    ES_DELETED
-};
-
-
-template <typename TKey, typename TValue>
-struct alignas(64) element_t {
-    TKey key;
-    TValue value;
-    EStatus status;
-};
-
-typedef bool hashmode_t;
-#define hash0 false
-#define hash1 true
 
 
 template <typename TKey, typename TValue>
@@ -72,9 +58,13 @@ class HashTable {
             element_t<TKey, TValue> *temp1 = &(elements_1[idx1]);
             element_t<TKey, TValue> *element = nullptr;
 
+            // Check if either of the two elements matches the one we are
+            // interested in.
             if (temp0->key == key && temp0->status == ES_POPULATED) element = temp0;
             if (temp1->key == key && temp1->status == ES_POPULATED) element = temp1;
 
+            // if we are inserting, and element is still null, then we must
+            // actually perform the insert.
             if (!element && op == O_INSERT) {
                 // if either of the possible spots are free, then all is good!
                 // just stick the new value into there. "Free" means either
@@ -94,19 +84,62 @@ class HashTable {
                     return temp1;
                 }
 
-                // if not, evict temp1 back to the first array, evicting elements
-                // to their alternate array as needed until the insert succeeds,
-                // or the iteration limit is reached.
+                // if not, evict temp1 back to the first array, evicting
+                // elements to their alternate array as needed until the insert
+                // succeeds, or the iteration limit is reached.
+                auto aux_stack = new ArrayStack<TKey, TValue>(max_itr);
+                hashmode_t hfunc = hash0;
+                element_t<TKey, TValue> *evicted = temp1;
 
+                while (evicted->status == ES_POPULATED && aux_stack->has_space()) {
+                    size_t idx = hash(evicted->key, hfunc);
+                    aux_stack->push(evicted, hfunc, idx);
+
+                    evicted = (hfunc == hash0) ? &(elements_0[idx]) : &(elements_1[idx]);
+                    hfunc = hash_toggle(hfunc);
+                }
+
+                // if the stack is full, we have reached out maximum iteration
+                // count and so the insert fails. Return null to indicate this.
+                if (!aux_stack->has_space()) {
+                    return nullptr;
+                }
+
+                // perform all of the table evictions
+                while (!aux_stack->is_empty()) {
+                    auto current = aux_stack->pop();
+                    if (current.hmode == hash0) {
+                        elements_0[current.idx].key = current.elem->key;
+                        elements_0[current.idx].value = current.elem->value;
+                        elements_0[current.idx].status = ES_POPULATED;
+                    } else {
+                        elements_1[current.idx].key = current.elem->key;
+                        elements_1[current.idx].value = current.elem->value;
+                        elements_1[current.idx].status = ES_POPULATED;
+                    }
+                }
+
+                // after which, the desired spot should be free to place the
+                // inserted element.
+                temp1->key = key;
+                temp1->value = value;
+                temp1->status = ES_POPULATED; // should always be the case, so
+                                              // this is likely unneeded
+                count++;
+
+                element = temp1;
             }
+
+            return element;
         }
 
 
-        u_int32_t hash(TKey key, hashmode_t mode)
+        size_t hash(TKey key, hashmode_t mode)
         {
             u_int64_t hashed = mode ? h1(key) : h0(key);
 
-            return (hashed * size) >> 32;
+            return hashed % partial_sz;
+//            return (hashed * partial_sz) >> 32;
         }
 
 
@@ -150,7 +183,7 @@ class HashTable {
             // into this. The compiler will do strength reduction automatically
             // on these anyway, right? Is it even worth it to store the half
             // size somewhere, compared to just doing size / 2?
-            size_t old_sz = size;
+            size_t old_sz = partial_sz;
             size = size * 2;
             partial_sz = size / 2;
 
@@ -169,42 +202,43 @@ class HashTable {
 
 
     public:
-        HashTable<TKey, TValue>(u_int32_t (*hfunc)(TKey))
+        HashTable<TKey, TValue>(size_t init_size, u_int32_t (*hfunc0)(TKey),
+                                u_int32_t (*hfunc1)(TKey), size_t maxitr)
         {
-            initialize(1024, hfunc, .75);
+            initialize(init_size, hfunc0, hfunc1, maxitr);
         }
 
 
-        HashTable<TKey, TValue>(size_t init_size, u_int32_t (*hfunc)(TKey))
+        HashTable<TKey, TValue>(u_int32_t (*hfunc0)(TKey),
+                                u_int32_t (*hfunc1)(TKey), size_t maxitr)
         {
-            initialize(init_size, hfunc, .75);
+            initialize(1024, hfunc0, hfunc1, maxitr);
         }
 
 
-
-        HashTable<TKey, TValue>(size_t init_size, u_int32_t (*hfunc)(TKey), size_t maxitr)
+        HashTable<TKey, TValue>(size_t init_size, u_int32_t (*hfunc0)(TKey),
+                                u_int32_t (*hfunc1)(TKey))
         {
-            initialize(init_size, hfunc, maxitr);
+            initialize(init_size, hfunc0, hfunc1, 16);
         }
 
 
-        HashTable<TKey, TValue>(size_t init_size)
+        HashTable<TKey, TValue>(u_int32_t (*hfunc0)(TKey),
+                                u_int32_t (*hfunc1)(TKey))
         {
-            initialize(init_size, nullptr, .75);
-        }
-
-
-        HashTable<TKey, TValue>()
-        {
-            initialize(1024, nullptr, .75);
+            initialize(1024, hfunc0, hfunc1, 16);
         }
 
 
         element_t<TKey, TValue> *insert(TKey key, TValue value)
         {
-            if (load_factor() > max_itr) resize();
+            element_t<TKey, TValue> *elem;
+            do {
+                elem = operate(key, O_INSERT, value);
+                if (!elem) resize();
+            } while (!elem);
 
-            return operate(key, O_INSERT, value);
+            return elem;
         }
 
 
