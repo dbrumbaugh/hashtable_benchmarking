@@ -1,7 +1,6 @@
 #!/bin/ksh
 echo "Running benchmarks"
 
-
 echo -e "\tRunning baseline benchmark"
 echo "n,throughput,latency" > ./benchmarks/baseline.log
 for (( i = 1; i<1000000; i = $i + 10000 )); do
@@ -9,4 +8,9 @@ for (( i = 1; i<1000000; i = $i + 10000 )); do
 done
 echo -e "\tFinished running baseline benchmark"
 
-echo ""
+echo -e "\tRunning mixedops benchmark"
+echo "write_mix,latency" > ./benchmarks/mixops.log
+for (( i = 1; i<101; i = $i + 1 )); do
+    ./benchmarks/mixedops_bench $(( $i / 100.0  ))  >> ./benchmarks/mixops.log
+done
+echo -e "\tFinished running mixedops benchmark"
